@@ -19,7 +19,7 @@ resource "null_resource" "wait_test" {
 
   provisioner "local-exec" {
     command = <<EOT
-        i="0" ; while [ $i -lt 4 ] ;do sleep 1 ; echo Counter:$i ; i=$[$i+1] ; done
+        i="0" ; while [ $i -lt 2 ] ;do sleep 1 ; echo Counter:$i ; i=$[$i+1] ; done
     EOT
   }
 }
@@ -42,6 +42,25 @@ resource "null_resource" "example1" {
   }
 }
 
+data "local_file" "whitelist-ips" {
+    filename = "${path.module}/ips.txt"
+}
+
+resource "null_resource" "example_data_use" {
+  depends_on = [null_resource.wait_test]
+  
+  triggers = {
+    always_run = "${timestamp()}"
+  }
+  provisioner "local-exec" {
+    command = "echo IP: $TEST > white_list.txt"
+    environment = {
+      FOO  = "bar"
+      TEST = "${data.local_file.whitelist-ips.content}"
+    }
+  }
+}
+
 module "moduleA" {
   source = "./moduleA"
 }
@@ -49,3 +68,9 @@ module "moduleA" {
 #module "AzureVirtualMachine" {
 #  source = "./azure"
 #}
+
+output "data_test" {
+  description = "Data test"
+  value       = data.template_file.init
+}
+
